@@ -14,6 +14,7 @@ When this map is done: nothing left to decide. The output is a game spec, a `lib
 
 ## Decisions so far
 
+- **Floor representation & seeded RNG** — floor = tile grid (WALL/FLOOR/EXIT) + room list with spawn/exit; TILE=16, map 40×30, 5-tile cell, 3–8 rooms, 1 reserved boss cell; continuous-pixel-over-grid; **full-run determinism** via `lib/seeded.lua` (layout+pickups+enemy spawns/rolls), seed as string. Detail: `docs/floor-model.md`.
 - **Architecture & module decomposition** — locked the `lib/` split (14 self-contained modules, each `load/update/draw(world, dt)`), thin ordered-registration `main.lua`, shared `world` table (no cross-requires), single RNG in `lib/seeded.lua`, connectivity assert in `lib/map.lua`. Boundaries + flow only (ordering → #13). See `docs/architecture.md`.
 - **Room-generation algorithm** — grid-of-rooms with connecting corridors (RogueBasin grid method), with a reserved boss/exit cell; a spanning-tree corridor pass guarantees connectivity; seeded via `love.math.random` after `setRandomSeed`. Recipe + LÖVE gotchas: `docs/research/room-generation.md`.
 - **Procedural sprite & tile asset pipeline** — `ImageData:setPixel` → `newImage`; one `SpriteBatch` per tile type; `Canvas` for off-screen; neon = baked halo + `setBlendMode("add")` glow. 16×16 primitives owned by `lib/assets.lua`. See `docs/research/sprite-pipeline.md`.
