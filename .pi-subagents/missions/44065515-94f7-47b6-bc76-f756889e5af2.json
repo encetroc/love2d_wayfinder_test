@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "id": "44065515-94f7-47b6-bc76-f756889e5af2",
+  "title": "Research question for a design map (GitHub issue #7). Work as an autonomous researcher against PR...",
+  "goal": "Research question for a design map (GitHub issue #7). Work as an autonomous researcher against PRIMARY sources.\n\nQUESTION: How are the procedural tile & sprite assets generated in code for a LÖVE 11.5 game, to deliver a flat-geometric + neon visual style on a GBC-Zelda-style top-down tile grid? Native-only, no external asset files.\n\nDeliverables:\n1. FIRST read the local primary reference: /home/encetroc/love2d_wayfinder_test/.agents/skills/love2d/REFERENCE.md — especially its \"Procedural images\" and \"Procedural audio\" sections and rendering module cheat sheet. Then consult LÖVE 11.5 official API docs (love.image, love.graphics, ImageData:setPixel, Image/Mesh/SpriteBatch, Canvas) as primary sources.\n2. Determine the concrete pattern per artifact, from the reference's decision lines:\n   - ImageData + setPixel for tile sprites\n   - Image/Mesh/SpriteBatch for rendering many tiles\n   - Canvas for off-screen composition\n   - how flat shapes + neon glow read at small tile sizes\n3. Propose a SMALL set of procedurally-generated tile/sprite primitives: floor tile, wall tile, player sprite, each enemy archetype sprite (chaser/shooter/tank), projectile — with the module that owns generation (likely lib/assets.lua). Give a concrete code pattern per artifact (e.g. the setPixel loop shape, palette approach for neon glow, SpriteBatch usage).\n\nRETURN (as final output): a written finding in Markdown, cited to sources, saved verbatim as a repo note titled 'Procedural sprite & tile asset pipeline'. Include the per-artifact pattern, the proposed primitive set + owning module, and LÖVE API specifics/signatures. Concrete and decisive.",
+  "status": "completed",
+  "createdAt": "2026-08-07T17:12:39.286Z",
+  "updatedAt": "2026-08-07T17:22:36.993Z",
+  "runs": [
+    {
+      "runId": "9b46a300",
+      "mode": "single",
+      "agent": "researcher",
+      "status": "completed",
+      "startedAt": "2026-08-07T17:22:36.992Z",
+      "completedAt": "2026-08-07T17:22:36.992Z"
+    }
+  ],
+  "decisions": [],
+  "artifacts": [
+    {
+      "kind": "output",
+      "path": "/home/encetroc/love2d_wayfinder_test/.pi-subagents/artifacts/9b46a300_researcher_0_output.md"
+    },
+    {
+      "kind": "output",
+      "path": "/home/encetroc/love2d_wayfinder_test/.pi-subagents/artifacts/outputs/9b46a300/research.md"
+    },
+    {
+      "kind": "other",
+      "path": "/home/encetroc/love2d_wayfinder_test/.pi-subagents/artifacts/9b46a300_researcher_0_transcript.jsonl",
+      "description": "Child transcript"
+    }
+  ],
+  "receipts": [],
+  "cwd": "/home/encetroc/love2d_wayfinder_test",
+  "ownerSessionId": "/home/encetroc/.pi/agent/sessions/--home-encetroc-love2d_wayfinder_test--/2026-08-07T16-49-47-954Z_019fdd21-7fb2-7db6-b931-a0477851d6bb.jsonl",
+  "summary": "# Procedural sprite & tile asset pipeline\n\n> Repo note for GitHub issue #7 — design decision. Native-only LÖVE 11.5, no external asset files. GBC-Zelda-style top-down tile grid, flat-geometric + neon visual style. **Pattern per artifact: build `ImageData` pixel-by-pixel in code → `love.graphics.newImage(imageData)`; render many tiles with a `SpriteBatch`; compose off-screen with a `Canvas`; add neon glow with `love.graphics.setBlendMode(\"add\")`.** All generation logic lives in `lib/assets.lua`, called once from `love.load`.\n\n---\n\n## Primary decision lines (from this repo's authoritative reference)\n\nThe repo's own LÖVE 11.5 reference (`.agents/skills/love2d/REFERENCE.md`) fixes the pattern and is the **single source of truth**. Its explicit decision lines:\n\n- **Colors are 0..1 floats** everywhere (`r,g,b,a`). `ImageData:setPixel` and `love.graphics.setColor` take floats; passing 0..255 \"silently burns out.\" This is called out as **the single most common 11.x bug** in the Gotchas. [REFERENCE.md](file:///home/encetroc/love2d_wayfinder_test/.agents/skills/love2d/REFERENCE.md)\n- **Procedural images pattern:** *\"build `ImageData` pixel-by-pixel in code → `love.graphics.newImage(imageData)`. No `.png` ever committed.\"* [REFERENCE.md](file:///home/encetroc/love2d_wayfinder_test/.agents/skills/love2d/REFERENCE.md)\n- **Rendering many tiles:** `SpriteBatch = love.graphics.newSpriteBatch(image, capacity)` → `batch:add(x, y, ...)` then one `love.graphics.draw(batch)`. *\"Ideal for many instances of one texture.\"* [REFERENCE.md](file:///home/encetroc/love2d_wayfinder_test/.agents/skills/love2d/REFERENCE.md)\n- **Off-screen composition:** `Canvas` via `love.graphics.newCanvas(w, h)` + `love.graphics.setCanvas(canvas)` → draw into it → `setCanvas()` → draw the canvas whole. Use for bloom/caches of expensive procedural art. [REFERENCE.md](file:///home/encetroc/love2d_wayfinder_test/.agents/skills/love2d/REFERENCE.md)\n- **Neon glow:** `love.graphics.setBlendMode(\"add\")` — *\"`add` fo...",
+  "acceptance": {
+    "status": "attested",
+    "evidenceStatus": "attested",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "read-only/reviewer-style agent"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return concrete findings with file paths and severity when applicable",
+          "evidence": [
+            "review-findings",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "review-findings",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "read-only/reviewer-style agent"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return concrete findings with file paths and severity when applicable",
+        "evidence": [
+          "review-findings",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "Returned concrete, decisive findings with exact LÖVE 11.5 API signatures (ImageData:setPixel 0-indexed 0..1 floats, love.graphics.newImage/newSpriteBatch/newCanvas/newMesh, SpriteBatch:set, setBlendMode('add')) cited to love2d.org wiki and the repo's pinned REFERENCE.md. Findings include file paths: owning module lib/assets.lua (proposed) and local primary .agents/skills/love2d/REFERENCE.md. Per-artifact patterns for floor/wall/player/enemy_chaser/enemy_shooter/enemy_tank/projectile with concrete setPixel loop shapes, neon palette, and SpriteBatch usage are in the saved note."
+        }
+      ],
+      "changedFiles": [
+        ".pi-subagents/artifacts/outputs/9b46a300/research.md"
+      ],
+      "testsAddedOrUpdated": [],
+      "commandsRun": [
+        {
+          "command": "read REFERENCE.md + love2d.org wiki via web_search (newImageData, setPixel, newSpriteBatch, newCanvas, setBlendMode, newMesh, tile tutorial)",
+          "result": "passed",
+          "summary": "Read the repo's local LÖVE 11.5 reference first (incl. Procedural images/audio + rendering cheat sheet), then confirmed all API signatures against primary love2d.org wiki via multiple parallel queries."
+        },
+        {
+          "command": "write .pi-subagents/artifacts/outputs/9b46a300/research.md",
+          "result": "passed",
+          "summary": "Wrote the full research brief to the authoritative output path (25221 bytes) and re-read to confirm content intact; auto-lint only adjusted markdown whitespace."
+        }
+      ],
+      "validationOutput": [
+        "Research brief written to /home/encetroc/love2d_wayfinder_test/.pi-subagents/artifacts/outputs/9b46a300/research.md and re-read to verify. All LÖVE 11.5 API claims cross-checked against primary love2d.org wiki pages and the repo's pinned reference."
+      ],
+      "residualRisks": [
+        "Tile size (16x16) inferred from GBC-Zelda convention, not confirmed against issue #7 spec; confirm the TILE constant once map layout (issue #12) is settled.",
+        "lib/assets.lua does not yet exist in repo; module name is proposed per repo naming convention and should be confirmed at implementation.",
+        "baked-halo vs additive-overlay glow is a stylistic choice; both are offered and either is valid."
+      ],
+      "noStagedFiles": true,
+      "diffSummary": "Created new research note documenting the procedural sprite & tile asset pipeline for issue #7: per-artifact ImageData:setPixel patterns, proposed primitive set, owning module lib/assets.lua, and LÖVE 11.5 API specifics.",
+      "reviewFindings": [
+        "no blockers - findings fully grounded in the repo's pinned REFERENCE.md and the official love2d.org wiki (primary sources); no contradictions between local reference and wiki signatures."
+      ],
+      "manualNotes": "The auto-lint only adjusted markdown whitespace; content verified. Tile-size and module-name are the only open items, flagged in residualRisks for the parent to resolve against issue #7/#12 specs before implementation."
+    }
+  }
+}

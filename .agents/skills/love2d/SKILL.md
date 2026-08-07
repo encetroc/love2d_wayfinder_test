@@ -1,6 +1,6 @@
 ---
 name: love2d
-description: Build LÖVE (Love2D) games in Lua against version 11.5, native-only — every asset generated in code, no external libraries, helpers written as local libs. Use for any LÖVE game code: the main loop, drawing, procedural images/audio/fonts, input, physics, or movement/AI math.
+description: 'Build LÖVE (Love2D) games in Lua against version 11.5, native-only — every asset generated in code, no external libraries, helpers written as local libs. Use for any LÖVE game code: the main loop, drawing, procedural images/audio/fonts, input, physics, or movement/AI math.'
 ---
 
 # LÖVE (Love2D) 11.5
