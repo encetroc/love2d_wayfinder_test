@@ -1,0 +1,3 @@
+interface:
+  display_name: "LÖVE (Love2D) 11.5"
+  short_description: "Build LÖVE 11.5 games: procedural assets, native-only"
