@@ -85,7 +85,7 @@ end
 -- real HUD owns on-screen state readouts from B12).
 function seeded.draw(world)
   if not world.debug then return end
-  love.graphics.setColor(0.55, 0.85, 0.55, 1)
+  love.graphics.setColor(0.30, 0.60, 0.38, 1) -- dim green, B6.1 restyle
   love.graphics.print("rng draws (" .. #debugLines .. " shown / " .. total .. " total)", 8, 72)
   for i, line in ipairs(debugLines) do
     love.graphics.print(line, 8, 72 + 14 * i)

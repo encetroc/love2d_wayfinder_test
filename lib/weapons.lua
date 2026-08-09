@@ -20,12 +20,12 @@ local weapons = {
   DEFS = {
     pulse = {
       name = "PULSE", cd = 0.22, dmg = 1, speed = 300, pr = 3, life = 0.9,
-      pellets = 1, spread = 0, col = { 1, 1, 0.40 },  -- accurate; ~270px reach
+      pellets = 1, spread = 0, col = { 1.00, 1.00, 1.00 }, -- white tracer
       ammo = 30, max = 60,
     },
     scatter = {
       name = "SCATTER", cd = 0.55, dmg = 1, speed = 260, pr = 2, life = 0.35,
-      pellets = 5, spread = 0.16, col = { 1, 0.60, 0.15 },  -- ±9° fan; ~91px reach
+      pellets = 5, spread = 0.16, col = { 0.90, 1.00, 0.85 }, -- pale green pellets
       ammo = 8, max = 16,
     },
   },
@@ -99,18 +99,21 @@ end
 function weapons.draw(world)
   local p = world.player
   world.camera.apply() -- world space (same transform as map/player)
-  -- faint aim line to the cursor so the fan/accuracy split reads at a glance
+  -- faint green-white aim line to the cursor (B6.1 restyle; the fan/accuracy
+  -- split still reads at a glance)
   local wx, wy = windowToWorld(world, love.mouse.getPosition())
-  love.graphics.setColor(1, 1, 1, 0.18)
+  love.graphics.setColor(0.55, 1.00, 0.70, 0.22)
   love.graphics.line(p.x, p.y, wx, wy)
-  -- muzzle flash on the last fired angle
+  -- muzzle flash: white-hot core with a green ring (Antecrypt burst language)
   if p.muzzle > 0 then
     local a = p.aim
     local fx = p.x + math.cos(a) * (p.RADIUS + 8)
     local fy = p.y + math.sin(a) * (p.RADIUS + 8)
     love.graphics.setBlendMode("add")
     love.graphics.setColor(1, 1, 1, math.min(1, p.muzzle * 8))
-    love.graphics.circle("fill", fx, fy, 4)
+    love.graphics.circle("fill", fx, fy, 3.5)
+    love.graphics.setColor(0.45, 1.00, 0.55, math.min(1, p.muzzle * 4) * 0.6)
+    love.graphics.circle("line", fx, fy, 7)
     love.graphics.setBlendMode("alpha")
   end
   world.camera.pop()

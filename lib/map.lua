@@ -223,19 +223,22 @@ function map.draw(world)
   love.graphics.draw(map.wallBatch, 0, 0)
   love.graphics.draw(map.floorBatch, 0, 0)
 
-  -- exit portal: additive glow on the EXIT tile
+  -- exit portal: the Antecrypt "white hard-drive monolith" focal — white-hot
+  -- core + a wider pale-green halo (B6.1)
   local e = f.exit
   love.graphics.setBlendMode("add")
-  love.graphics.setColor(1, 0.8, 0.4, 0.85)
+  love.graphics.setColor(0.35, 1.00, 0.50, 0.5)
+  love.graphics.draw(world.assets.images.glow, (e.tx - 1) * TILE - 6, (e.ty - 1) * TILE - 6, 0, 1.8, 1.8)
+  love.graphics.setColor(1, 1, 1, 0.9)
   love.graphics.draw(world.assets.images.glow, (e.tx - 1) * TILE, (e.ty - 1) * TILE)
   love.graphics.setBlendMode("alpha")
 
   if world.debug then
-    -- spawn marker + room ids (dev readout, world space)
+    -- spawn marker + room ids (dev readout, world space, restyled B6.1)
     local s = f.spawn
-    love.graphics.setColor(0.3, 1, 1, 0.9)
+    love.graphics.setColor(0.35, 1.00, 0.55, 0.9)
     love.graphics.rectangle("line", (s.tx - 1) * TILE + 2, (s.ty - 1) * TILE + 2, 12, 12)
-    love.graphics.setColor(1, 1, 1, 0.5)
+    love.graphics.setColor(0.35, 0.85, 0.50, 0.6)
     for _, r in ipairs(f.rooms) do
       local cx = (r.rect.x + r.rect.w / 2) * TILE
       local cy = (r.rect.y + r.rect.h / 2) * TILE

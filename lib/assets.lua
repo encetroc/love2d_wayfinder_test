@@ -13,22 +13,28 @@
 
 local RATE = 44100
 
+-- --- palette -------------------------------------------------------------
+-- B6.1 (ticket #26): Antecrypt-style look, measured from the Steam captures —
+-- near-black + very-dark-green field, bright-green entities, white cores, and
+-- pink/red accents for damage. Hexes follow the captured families:
+--   floor #001000/#002010/#005010 · player #3BA65E · accents #F7998F/#F28C73
 local PAL = {
-  floor    = { 0.06, 0.05, 0.10 },
-  wall     = { 0.12, 0.11, 0.16 },
-  wallEdge = { 0.35, 0.90, 1.00 },
-  wallFar  = { 0.05, 0.05, 0.08 },
-  player   = { 0.20, 1.00, 1.00 },
-  chaser   = { 1.00, 0.30, 0.90 },
-  shooter  = { 1.00, 0.55, 0.20 },
-  tank     = { 1.00, 0.25, 0.25 },
-  proj     = { 1.00, 0.95, 0.75 },
-  white    = { 1.00, 1.00, 1.00 },
+  floor    = { 0.003, 0.062, 0.003 }, -- #001000-ish near-black green field
+  wall     = { 0.012, 0.032, 0.012 }, -- darker than the floor: arena bounds
+  wallEdge = { 0.160, 0.480, 0.280 }, -- faint green rim so walls stay readable
+  wallFar  = { 0.006, 0.016, 0.006 },
+  player   = { 0.230, 0.650, 0.370 }, -- bright entity green (#3BA65E)
+  chaser   = { 0.970, 0.600, 0.560 }, -- pink-red accent family
+  shooter  = { 0.950, 0.550, 0.450 }, -- warmer accent
+  tank     = { 1.000, 0.940, 0.620 }, -- white-hot (the monolith language)
+  proj     = { 1.000, 1.000, 1.000 }, -- white tracer core
+  white    = { 1.000, 1.000, 1.000 },
 }
 
 local assets = {
   images = {}, -- key -> Image
   sfx    = {}, -- key -> static Source
+  PAL = PAL,   -- exported for tests/smoke (and B7's enemy colors)
   buildCount = 0, -- init() ran N times (smoke: must stay 1)
 }
 
@@ -76,12 +82,16 @@ end
 
 local function genFloor()
   return buildImage(16, 16, function(x, y)
-    -- love.math.noise is fine here: ambient tile texture only, never layout
-    -- (docs/research/room-generation.md). Not seedable -> same texture every
-    -- run, which is exactly what a static tile wants.
-    local n = love.math.noise(x * 0.4, y * 0.4)
-    local v = n * 0.012
-    return PAL.floor[1] + v, PAL.floor[2] + v, PAL.floor[3] + v, 1
+    -- B6.1: dark-green-on-black field with a whisper of noise plus a period-2
+    -- row dither. The scanline feel measured in Antecrypt's captures is
+    -- concentrated IN the play area (2x the margins), so it's baked into the
+    -- floor tile rather than layered over UI text as a full-frame overlay.
+    -- love.math.noise is ambient texture only, never layout; not seedable ->
+    -- same texture every run, which is exactly what a static tile wants.
+    local n = love.math.noise(x * 0.35, y * 0.35)
+    local row = (y % 2 == 0) and 1 or 0.80
+    local v = 0.012 + n * 0.010
+    return (PAL.floor[1] + v) * row, (PAL.floor[2] + v) * row, (PAL.floor[3] + v) * row, 1
   end)
 end
 
@@ -129,6 +139,9 @@ local function genEnemyTank()
   end, 4)
 end
 
+-- pale green tracer tail (B6.1: white-hot core, green trail per the captures)
+local PROJ_TAIL = { 0.72, 1.00, 0.85 }
+
 local function genProjectile()
   -- 8x8: bright core + short soft tail (tinted per faction with setColor at draw)
   return buildImage(8, 8, function(x, y)
@@ -137,7 +150,7 @@ local function genProjectile()
       return PAL.proj[1], PAL.proj[2], PAL.proj[3], 1
     end
     local a = math.max(0, 1 - (d - 1.8) / 1.6) * 0.8
-    return PAL.proj[1], PAL.proj[2], PAL.proj[3], a
+    return PROJ_TAIL[1], PROJ_TAIL[2], PROJ_TAIL[3], a
   end)
 end
 
