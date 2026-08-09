@@ -29,6 +29,13 @@ local PAL = {
   tank     = { 1.000, 0.940, 0.620 }, -- white-hot (the monolith language)
   proj     = { 1.000, 1.000, 1.000 }, -- white tracer core
   white    = { 1.000, 1.000, 1.000 },
+  -- B9 pickup family (docs/progression-pickups.md): each pickup its own
+  -- 16x16 sprite so the four kinds read at a glance — white medic cross,
+  -- cool pulse capsule, pale-green scatter shell fan, bright-green chevron.
+  pickupHealth  = { 1.000, 1.000, 1.000 }, -- white (clean, not damage-red)
+  pickupPulse   = { 0.700, 0.880, 1.000 }, -- cool blue-white ammo tone
+  pickupScatter = { 0.720, 1.000, 0.850 }, -- pale green (scatter tracer family)
+  pickupUpgrade = { 0.350, 1.000, 0.500 }, -- brighter/saturated than the player
 }
 
 local assets = {
@@ -173,6 +180,41 @@ local function genParticle()
   end)
 end
 
+-- --- gen: pickups (B9; each 16x16 via buildEntity: opaque core + glow ring)
+
+local function genPickupHealth()
+  return buildEntity(PAL.pickupHealth, function(x, y)
+    local dx, dy = math.abs(x - 7.5), math.abs(y - 7.5)
+    return (dx <= 1.6 and dy <= 4.6) or (dy <= 1.6 and dx <= 4.6) -- plus sign
+  end, 3)
+end
+
+local function genPickupPulse()
+  return buildEntity(PAL.pickupPulse, function(x, y)
+    local dx, dy = (x - 7.5) / 5, (y - 7.5) / 2.5
+    return dx * dx + dy * dy <= 1 -- horizontal capsule (pulse round shape)
+  end, 3)
+end
+
+local function genPickupScatter()
+  return buildEntity(PAL.pickupScatter, function(x, y)
+    -- three pellets in a fan — the scatter blast's silhouette
+    for _, c in ipairs({ { 5, 10.5 }, { 8, 5.5 }, { 11, 10.5 } }) do
+      local dx, dy = x - c[1], y - c[2]
+      if dx * dx + dy * dy <= 2.2 then return true end
+    end
+    return false
+  end, 3)
+end
+
+local function genPickupUpgrade()
+  return buildEntity(PAL.pickupUpgrade, function(x, y)
+    -- point-up triangle (the chaser's silhouette): reads as "up / level up"
+    if y < 1 or y > 13 then return false end
+    return math.abs(x - 7.5) <= (y - 1) * (5.5 / 11.5)
+  end, 3)
+end
+
 -- --- sfx builder ----------------------------------------------------------
 
 -- Synthesis helper (docs/research/audio-scope.md): sine or square, freq sweeps
@@ -213,6 +255,10 @@ function assets.init()
   img.projectile     = genProjectile()
   img.glow           = genGlow()
   img.particle       = genParticle()
+  img.pickup_health  = genPickupHealth()
+  img.pickup_pulse   = genPickupPulse()
+  img.pickup_scatter = genPickupScatter()
+  img.pickup_upgrade = genPickupUpgrade()
 
   local sfx = assets.sfx
   sfx.shoot        = makeSound(0.10, 900, 200, 0.5, "square", 0.10) -- descending laser

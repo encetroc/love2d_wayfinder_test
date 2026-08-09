@@ -84,7 +84,10 @@ function weapons.fire(world, ang)
     world.projectiles[#world.projectiles + 1] = {
       x = p.x + math.cos(a) * o, y = p.y + math.sin(a) * o,
       vx = math.cos(a) * w.speed, vy = math.sin(a) * w.speed,
-      r = w.pr, life = w.life, from = "player", dmg = w.dmg, col = w.col,
+      r = w.pr, life = w.life, from = "player",
+      -- B9: damage upgrade = flat +1 read at fire time (pulse 1->2, every
+      -- scatter pellet 1->2); owned by lib/pickups.lua as p.dmgUp (0/1)
+      dmg = w.dmg + (p.dmgUp or 0), col = w.col,
     }
   end
   world.assets.play("shoot")

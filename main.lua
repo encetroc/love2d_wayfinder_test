@@ -12,8 +12,6 @@ local config = require("lib.config")
 -- B1 shipped zero gameplay modules: config is a constants table, not a hook
 -- module. Later tickets append one line each, in build order
 -- (docs/backlog.md):
---   B6  require("lib.weapons"), require("lib.projectiles")
---   B9  require("lib.pickups")
 --   B10 require("lib.run")
 --   B11 require("lib.audio")
 --   B12 require("lib.hud")
@@ -27,6 +25,7 @@ local modules = {
   require("lib.projectiles"), -- B6: motion + wall/life death (world.projectiles)
   require("lib.enemy"),       -- B7: 3 archetypes + seeded per-room spawn (world.enemies)
   require("lib.combat"),      -- B8: damage flow — hits/HP/i-frames/kills (world.combat)
+  require("lib.pickups"),     -- B9: seeded pickups + overlap collect (world.pickups)
 }
 
 local world       -- shared state, built once in love.load

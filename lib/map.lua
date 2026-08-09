@@ -99,7 +99,15 @@ local function generateFloor(rng)
   spawnRoom.spawn = true
   local exitRoom
   for i = 2, count - 1 do
-    placeRoom(pickFreeCell(), i)
+    -- B9: mark the picked cell used BEFORE placing, exactly like spawn/exit
+    -- do — the caller used to skip this, so a later pickFreeCell could reuse
+    -- the same 5x5 cell and the two rooms would OVERLAP (rects share tiles,
+    -- roomAt became ambiguous — broke B9's "pickup inside ITS room"
+    -- guarantee and would've bitten B10's room tracking too). Latent since
+    -- B4; the connectivity assert can't see it (both rooms stay reachable).
+    local c = pickFreeCell()
+    used[key(c)] = true
+    placeRoom(c, i)
   end
   exitRoom = placeRoom(exitCell, count)
   exitRoom.exit = true
