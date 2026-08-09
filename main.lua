@@ -13,7 +13,6 @@ local config = require("lib.config")
 -- module. Later tickets append one line each, in build order
 -- (docs/backlog.md):
 --   B6  require("lib.weapons"), require("lib.projectiles")
---   B8  require("lib.combat")
 --   B9  require("lib.pickups")
 --   B10 require("lib.run")
 --   B11 require("lib.audio")
@@ -27,6 +26,7 @@ local modules = {
   require("lib.weapons"),     -- B6: PULSE/SCATTER defs + fire (world.weapons)
   require("lib.projectiles"), -- B6: motion + wall/life death (world.projectiles)
   require("lib.enemy"),       -- B7: 3 archetypes + seeded per-room spawn (world.enemies)
+  require("lib.combat"),      -- B8: damage flow — hits/HP/i-frames/kills (world.combat)
 }
 
 local world       -- shared state, built once in love.load
@@ -105,8 +105,9 @@ local function drawBootReadout()
   love.graphics.setColor(BR[1], BR[2], BR[3], 0.9)
   love.graphics.rectangle("fill", 0, config.VIEW_H - 29, config.VIEW_W, 1)
   love.graphics.setColor(0.50, 0.85, 0.55, 1)
-  love.graphics.print(string.format("seed %s  player (%.0f,%.0f)  cam (%.0f,%.0f)",
-    world.seed, world.player.x, world.player.y, world.camera.x, world.camera.y),
+  love.graphics.print(string.format("seed %s  kills %d  player (%.0f,%.0f)  cam (%.0f,%.0f)",
+    world.seed, (world.run and world.run.kills) or 0,
+    world.player.x, world.player.y, world.camera.x, world.camera.y),
     8, config.VIEW_H - 22)
   love.graphics.setColor(DIM[1], DIM[2], DIM[3], 1)
   love.graphics.print(string.format("canvas %dx%d -> window %dx%d (x%.2f)  modules %d/12",

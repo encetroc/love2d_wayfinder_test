@@ -60,6 +60,7 @@ end
 -- swap away (1/2) or find ammo (docs/combat-weapons.md).
 function weapons.fire(world, ang)
   local p = world.player
+  if p.hp and p.hp <= 0 then return end -- B8: dead players don't fire (combat owns hp)
   local w = weapons.DEFS[p.weapon]
   if p.cd > 0 then return end
   if p.ammo[p.weapon] <= 0 then return end

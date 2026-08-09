@@ -53,6 +53,9 @@ end
 
 -- WASD + arrow keys; 130 px/s (docs/combat-weapons.md), diagonal normalized.
 function player.update(world, dt)
+  -- B8: HP 0 = dead; the corpse doesn't walk. combat.lua owns hp; B10's DEAD
+  -- state takes over the run from here (permadeath overlay, restart).
+  if player.hp and player.hp <= 0 then return end
   local dx, dy = 0, 0
   if love.keyboard.isDown("a", "left") then dx = dx - 1 end
   if love.keyboard.isDown("d", "right") then dx = dx + 1 end
@@ -69,9 +72,21 @@ function player.draw(world)
   -- B6: drawn inside camera.apply like the map — B5 shipped the sprite at raw
   -- world coords, so once the camera left (0,0) the player slid off-screen
   world.camera.apply()
-  love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.draw(world.assets.images.player, player.x - 8, player.y - 8)
-  world.assets.drawGlow(world.assets.images.glow, player.x - 8, player.y - 8, 1.3)
+  -- B8: i-frames blink — skip the sprite every other 0.05s tick while
+  -- invulnerable (classic 0.5s invuln cue, prototype parity).
+  local blinking = player.iframes and player.iframes > 0
+    and math.floor(player.iframes * 20) % 2 == 0
+  if not blinking then
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(world.assets.images.player, player.x - 8, player.y - 8)
+    world.assets.drawGlow(world.assets.images.glow, player.x - 8, player.y - 8, 1.3)
+  end
+  -- B8: 0.25s hurt flash — red wash over the body (damage accent family per
+  -- B6.1; reads against the green sprite as "just took a hit").
+  if player.flash and player.flash > 0 then
+    love.graphics.setColor(1, 0.25, 0.25, math.min(1, player.flash * 4) * 0.55)
+    love.graphics.circle("fill", player.x, player.y, player.RADIUS + 2)
+  end
   world.camera.pop()
 end
 
