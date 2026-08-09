@@ -12,7 +12,6 @@ local config = require("lib.config")
 -- B1 shipped zero gameplay modules: config is a constants table, not a hook
 -- module. Later tickets append one line each, in build order
 -- (docs/backlog.md):
---   B5  require("lib.player"), require("lib.camera")
 --   B6  require("lib.weapons"), require("lib.projectiles")
 --   B7  require("lib.enemy")
 --   B8  require("lib.combat")
@@ -24,6 +23,8 @@ local modules = {
   require("lib.seeded"), -- B2: orders first — every later module draws from world.seeded
   require("lib.assets"), -- B3: sprite + sfx primitives, built once in load
   require("lib.map"),    -- B4: seeded floor gen + connectivity assert + tile batches
+  require("lib.player"), -- B5: WASD movement + wall-slide (world.player)
+  require("lib.camera"), -- B5: centered follow + world clamp + smoothing
 }
 
 local world       -- shared state, built once in love.load
@@ -62,7 +63,11 @@ local function drawBootReadout()
       config.VIEW_W, config.VIEW_H, w, h, scale),
     8, 24)
   love.graphics.print("seed " .. world.seed, 8, 40)
-  love.graphics.print("modules registered: " .. #modules .. " / 12 planned", 8, 56)
+  love.graphics.print(
+    string.format("player (%.0f,%.0f) cam (%.0f,%.0f)",
+      world.player.x, world.player.y, world.camera.x, world.camera.y),
+    8, 56)
+  love.graphics.print("modules registered: " .. #modules .. " / 12 planned", 8, 64)
 end
 
 function love.load()

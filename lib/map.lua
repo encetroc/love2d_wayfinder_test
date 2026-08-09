@@ -211,44 +211,41 @@ end
 function map.update()
 end
 
--- B4: whole-floor fit-preview scaled into the canvas so the entire layout +
--- spawn/exit are visible at once (camera-relative native-scale draw lands in B5).
+-- B5+: native-scale, camera-relative draw (the canvas IS the viewport).
+-- The B4 whole-floor fit-preview is retired now that the camera scrolls.
 function map.draw(world)
   local f = map.floor
-  if not f then return end
+  if not f or not world.camera then return end
   local TILE = map.TILE
-  local scale = math.min(world.VIEW_W / world.WORLD_W, world.VIEW_H / world.WORLD_H)
 
+  world.camera.apply() -- world-space content below; camera.pop() at the end
   love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.draw(map.wallBatch, 0, 0, 0, scale, scale)
-  love.graphics.draw(map.floorBatch, 0, 0, 0, scale, scale)
+  love.graphics.draw(map.wallBatch, 0, 0)
+  love.graphics.draw(map.floorBatch, 0, 0)
 
   -- exit portal: additive glow on the EXIT tile
   local e = f.exit
   love.graphics.setBlendMode("add")
   love.graphics.setColor(1, 0.8, 0.4, 0.85)
-  local gs = TILE * scale -- glow image is 16px = 1 tile, so scale is 1:1 with tiles
-  love.graphics.draw(world.assets.images.glow,
-    (e.tx - 1) * TILE * scale, (e.ty - 1) * TILE * scale, 0, gs, gs)
+  love.graphics.draw(world.assets.images.glow, (e.tx - 1) * TILE, (e.ty - 1) * TILE)
   love.graphics.setBlendMode("alpha")
 
   if world.debug then
-    -- spawn marker + room ids (dev readout)
+    -- spawn marker + room ids (dev readout, world space)
     local s = f.spawn
     love.graphics.setColor(0.3, 1, 1, 0.9)
-    love.graphics.rectangle("line",
-      (s.tx - 1) * TILE * scale + 2 * scale, (s.ty - 1) * TILE * scale + 2 * scale,
-      12 * scale, 12 * scale)
+    love.graphics.rectangle("line", (s.tx - 1) * TILE + 2, (s.ty - 1) * TILE + 2, 12, 12)
     love.graphics.setColor(1, 1, 1, 0.5)
     for _, r in ipairs(f.rooms) do
-      local cx = (r.rect.x + r.rect.w / 2) * TILE * scale
-      local cy = (r.rect.y + r.rect.h / 2) * TILE * scale
+      local cx = (r.rect.x + r.rect.w / 2) * TILE
+      local cy = (r.rect.y + r.rect.h / 2) * TILE
       local tag = tostring(r.id)
       if r.spawn then tag = tag .. " S" end
       if r.exit then tag = tag .. " E" end
       love.graphics.print(tag, cx, cy)
     end
   end
+  world.camera.pop()
 end
 
 -- Debug: R re-renders the floor from the SAME seed -> identical layout
@@ -268,6 +265,11 @@ function map.isWalkable(tx, ty)
   if not f or tx < 1 or ty < 1 or tx > map.MAPW or ty > map.MAPH then return false end
   local k = f.grid[ty][tx]
   return k == KIND.FLOOR or k == KIND.EXIT
+end
+
+-- pixel-space walkability (continuous-movement collision helper)
+function map.isWalkablePx(x, y)
+  return map.isWalkable(math.floor(x / map.TILE) + 1, math.floor(y / map.TILE) + 1)
 end
 
 -- tile kind from PIXEL coords (continuous world over discrete grid)
