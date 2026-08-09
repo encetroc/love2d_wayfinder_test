@@ -7,10 +7,9 @@ local config = require("lib.config")
 
 -- Ordered module registry — the thin-spine shape. Every entry exposes
 -- load/update/draw(world, dt) and communicates only via the shared `world`
--- table (no cross-module requires). B1 ships zero gameplay modules: config is
--- a constants table, not a hook module. Later tickets append one line each,
--- in build order (docs/backlog.md):
---   B2  require("lib.seeded")
+-- table (no cross-module requires). B1 shipped zero gameplay modules: config
+-- is a constants table, not a hook module. Later tickets append one line
+-- each, in build order (docs/backlog.md):
 --   B3  require("lib.assets")
 --   B4  require("lib.map")
 --   B5  require("lib.player"), require("lib.camera")
@@ -21,7 +20,9 @@ local config = require("lib.config")
 --   B10 require("lib.run")
 --   B11 require("lib.audio")
 --   B12 require("lib.hud")
-local modules = {}
+local modules = {
+  require("lib.seeded"), -- B2: orders first — every later module draws from world.seeded
+}
 
 local world       -- shared state, built once in love.load
 local canvas      -- base-res off-screen render target
@@ -29,12 +30,14 @@ local frameDt = 0 -- love.draw has no dt; forward the last update dt
 
 local function buildWorld()
   world = {
-    seed = config.DEBUG_SEED, -- real seeded RNG lands in B2
+    seed = config.DEBUG_SEED, -- consumed by lib/seeded's load()
+    debug = true,             -- gates dev helpers (B2 readout, later debug-R)
   }
 end
 
--- Temporary B1 boot readout; proves the canvas pipeline renders and shows the
--- contract state. Replaced by B2's RNG readout, later by B12's real HUD.
+-- Temporary boot readout; proves the canvas pipeline renders and shows the
+-- contract state. lib/seeded adds the RNG panel below it; B12's real HUD
+-- replaces all of it.
 local function drawBootReadout()
   local w, h = love.graphics.getDimensions()
   local scale = math.min(w / config.VIEW_W, h / config.VIEW_H)
