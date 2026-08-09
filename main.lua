@@ -13,7 +13,6 @@ local config = require("lib.config")
 -- module. Later tickets append one line each, in build order
 -- (docs/backlog.md):
 --   B6  require("lib.weapons"), require("lib.projectiles")
---   B7  require("lib.enemy")
 --   B8  require("lib.combat")
 --   B9  require("lib.pickups")
 --   B10 require("lib.run")
@@ -27,6 +26,7 @@ local modules = {
   require("lib.camera"), -- B5: centered follow + world clamp + smoothing
   require("lib.weapons"),     -- B6: PULSE/SCATTER defs + fire (world.weapons)
   require("lib.projectiles"), -- B6: motion + wall/life death (world.projectiles)
+  require("lib.enemy"),       -- B7: 3 archetypes + seeded per-room spawn (world.enemies)
 }
 
 local world       -- shared state, built once in love.load
