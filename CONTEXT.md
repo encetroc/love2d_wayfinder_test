@@ -63,3 +63,21 @@ _Avoid_: shotgun, heavy, spray
 **HP**:
 Hit points, measured in integer hits; 4 for the player, 2/3/6 for chaser/shooter/tank.
 _Avoid_: health (health is a general concept; HP is the game's model)
+
+## Pickups
+
+**Pickup**:
+A collect-on-overlap item placed in a room floor, part of in-run progression. Weapons are never pickups.
+_Avoid_: item, collectable, crate (crates were the prototype stand-in)
+
+**Health pickup**:
+A pickup that restores +2 HP, capped at the 4-HP maximum.
+_Avoid_: medkit, heart
+
+**Ammo pickup**:
+A pickup that restores +6 pulse or +2 scatter reserve ammo, capped at the weapon's max.
+_Avoid_: ammo crate, clip
+
+**Damage upgrade**:
+The single per-run pickup (spawned once, mid-floor) that raises damage by +1 on both weapons.
+_Avoid_: power-up, buff
