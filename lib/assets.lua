@@ -240,8 +240,9 @@ end
 
 -- Debug-only test strip was B3 tooling: proved every primitive renders and
 -- sfx audition keys work. The map now owns the canvas (B4), so draw is a
--- no-op; keys 1-6 stay as a debug sfx audition. Generation itself is a
--- load-time event, never per-frame (buildCount guard above).
+-- no-op; F1-F6 stay as a debug sfx audition (B6 remapped them off the number
+-- row — 1/2 are now the weapon swap). Generation itself is a load-time
+-- event, never per-frame (buildCount guard above).
 function assets.draw()
 end
 
@@ -249,8 +250,8 @@ end
 function assets.keypressed(world, key)
   if not world.debug then return end
   local map = {
-    ["1"] = "shoot", ["2"] = "enemy_hit", ["3"] = "enemy_death",
-    ["4"] = "pickup", ["5"] = "hurt", ["6"] = "player_death",
+    ["f1"] = "shoot", ["f2"] = "enemy_hit", ["f3"] = "enemy_death",
+    ["f4"] = "pickup", ["f5"] = "hurt", ["f6"] = "player_death",
   }
   local name = map[key]
   if name then assets.play(name) end

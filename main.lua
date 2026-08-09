@@ -25,6 +25,8 @@ local modules = {
   require("lib.map"),    -- B4: seeded floor gen + connectivity assert + tile batches
   require("lib.player"), -- B5: WASD movement + wall-slide (world.player)
   require("lib.camera"), -- B5: centered follow + world clamp + smoothing
+  require("lib.weapons"),     -- B6: PULSE/SCATTER defs + fire (world.weapons)
+  require("lib.projectiles"), -- B6: motion + wall/life death (world.projectiles)
 }
 
 local world       -- shared state, built once in love.load
@@ -68,6 +70,16 @@ local function drawBootReadout()
       world.player.x, world.player.y, world.camera.x, world.camera.y),
     8, 56)
   love.graphics.print("modules registered: " .. #modules .. " / 12 planned", 8, 64)
+  -- B6 dev readout: current weapon / reserve ammo / live projectile count
+  -- (top-right; the B12 HUD replaces this whole block)
+  if world.weapons and world.player.weapon then
+    local d = world.weapons.DEFS[world.player.weapon]
+    love.graphics.setColor(1, 0.9, 0.5, 1)
+    love.graphics.print(string.format("%s ammo %d/%d  proj %d", d.name,
+      world.player.ammo[world.player.weapon], d.max, #(world.projectiles or {})),
+      320, 8)
+    love.graphics.setColor(1, 1, 1, 1)
+  end
 end
 
 function love.load()
@@ -113,4 +125,12 @@ function love.keypressed(key)
     if m.keypressed then m.keypressed(world, key) end
   end
   if key == "escape" then love.event.quit() end
+end
+
+-- Input routing for mouse-driven modules (B6: weapons aim + fire). Same
+-- pattern as keypressed: thin fan-out, each module keeps its own handler.
+function love.mousepressed(x, y, button, istouch, presses)
+  for _, m in ipairs(modules) do
+    if m.mousepressed then m.mousepressed(world, x, y, button) end
+  end
 end

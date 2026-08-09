@@ -1,8 +1,9 @@
--- lib/player.lua — player movement (B5).
+-- lib/player.lua — player movement (B5) + weapon switching (B6).
 -- Continuous-pixel movement on the tile grid with per-axis wall collision
 -- (this IS the wall-slide: blocked axis stops, free axis keeps moving).
 -- Position is the player center in world px; a small circle hitbox.
--- Health/weapons/ammo/i-frames land in B6/B8 — this ticket is motion + render.
+-- Health/damage/i-frames land in B8; ammo + firing live in lib/weapons.lua
+-- (B6) with the weapon swap keyhandler here (docs/combat-weapons.md).
 --
 -- Contract: load/update/draw(world, dt). Wired as world.player.
 
@@ -65,9 +66,23 @@ function player.update(world, dt)
 end
 
 function player.draw(world)
+  -- B6: drawn inside camera.apply like the map — B5 shipped the sprite at raw
+  -- world coords, so once the camera left (0,0) the player slid off-screen
+  world.camera.apply()
   love.graphics.setColor(1, 1, 1, 1)
   love.graphics.draw(world.assets.images.player, player.x - 8, player.y - 8)
   world.assets.drawGlow(world.assets.images.glow, player.x - 8, player.y - 8, 1.3)
+  world.camera.pop()
+end
+
+-- Weapon swap: 1/2 (keys are free again — B6 remapped the B3 debug sfx
+-- audition off the number row since 1/2 are now gameplay). No cd reset on
+-- swap; switching is instant, firing respects each weapon's own cooldown.
+function player.keypressed(world, key)
+  if not world.weapons then return end
+  local idx = (key == "1") and 1 or (key == "2") and 2
+  if not idx then return end
+  world.player.weapon = world.weapons.ORDER[idx]
 end
 
 return player

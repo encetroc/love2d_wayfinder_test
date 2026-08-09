@@ -1,8 +1,12 @@
--- lib/camera.lua — centered-follow viewport camera (B5).
+-- lib/camera.lua — centered-follow viewport camera (B5, render fix in B6).
 -- Tracks the player's center each frame, clamps to the world so nothing past
 -- the 640x480 edge is ever shown, and eases with light smoothing instead of
 -- teleporting. No aim-bias in v1 (docs/viewport-camera.md); screen shake is
 -- B12 polish. Camera scroll range: x in [0, 640-480=160], y in [0, 480-360=120].
+-- B6 corrected the render transform: apply() translates by -floor(cam) (the
+-- B5 ship had the sign inverted, so the world scrolled WITH the camera and
+-- anything drawn outside apply() — the player — stayed at raw world coords).
+-- toScreen/toWorld keep the mapping in one place for input + drawing.
 --
 -- Contract: load/update/draw(world, dt). load() wires world.camera with the
 -- current view x/y plus an apply() transform for modules that draw world
@@ -25,13 +29,24 @@ end
 
 function camera.load(world)
   camera.x, camera.y = desired(world)
+  -- world-space draw transform: screen = world - floor(cam). floor keeps 1:1
+  -- tiles pixel-aligned during smoothing (clamp already bounded the camera).
   camera.apply = function()
     love.graphics.push()
-    love.graphics.translate(math.floor(camera.x), math.floor(camera.y))
-    -- floor so 1:1 tiles stay pixel-aligned during smoothing; still clamped
+    love.graphics.translate(-math.floor(camera.x), -math.floor(camera.y))
   end
   camera.pop = love.graphics.pop
   world.camera = camera
+end
+
+-- world px -> base-res screen px (mirrors what apply() does for drawing)
+function camera.toScreen(x, y)
+  return x - math.floor(camera.x), y - math.floor(camera.y)
+end
+
+-- base-res screen px -> world px (inverse; used by input routing like aim)
+function camera.toWorld(sx, sy)
+  return sx + math.floor(camera.x), sy + math.floor(camera.y)
 end
 
 function camera.update(world, dt)
