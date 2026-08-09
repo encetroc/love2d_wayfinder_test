@@ -7,10 +7,11 @@ local config = require("lib.config")
 
 -- Ordered module registry — the thin-spine shape. Every entry exposes
 -- load/update/draw(world, dt) and communicates only via the shared `world`
--- table (no cross-module requires). B1 shipped zero gameplay modules: config
--- is a constants table, not a hook module. Later tickets append one line
--- each, in build order (docs/backlog.md):
---   B3  require("lib.assets")
+-- table (no cross-module requires); modules may also expose an optional
+-- keypressed(world, key) hook (input lives in modules, per docs/architecture.md).
+-- B1 shipped zero gameplay modules: config is a constants table, not a hook
+-- module. Later tickets append one line each, in build order
+-- (docs/backlog.md):
 --   B4  require("lib.map")
 --   B5  require("lib.player"), require("lib.camera")
 --   B6  require("lib.weapons"), require("lib.projectiles")
@@ -22,6 +23,7 @@ local config = require("lib.config")
 --   B12 require("lib.hud")
 local modules = {
   require("lib.seeded"), -- B2: orders first — every later module draws from world.seeded
+  require("lib.assets"), -- B3: sprite + sfx primitives, built once in load
 }
 
 local world       -- shared state, built once in love.load
@@ -95,5 +97,8 @@ end
 
 -- run-game.sh tells the user Esc quits; honor that in the shell.
 function love.keypressed(key)
+  for _, m in ipairs(modules) do
+    if m.keypressed then m.keypressed(world, key) end
+  end
   if key == "escape" then love.event.quit() end
 end
