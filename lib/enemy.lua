@@ -1,10 +1,17 @@
 -- lib/enemy.lua — enemy AI: 3 archetypes + spawning (B7).
 -- Ports prototypes/enemy-ai (ticket #6, the approved reference) onto the
--- shared-world contract per docs/enemy-ai.md. Awareness is the gate: an enemy
--- is aware only when the player is in the SAME room (room membership from
--- floor.rooms) AND within aggro range; otherwise it de-aggros and idles — no
--- cross-room chasing. chaser seeks, shooter keeps its band and fires #6's
--- 165px/s projectile, tank runs hold -> telegraph -> charge -> recover.
+-- shared-world contract per docs/enemy-ai.md. Awareness gate: an enemy is
+-- aware only when the player is within aggro range AND line-of-sight
+-- (hasLOS); otherwise it de-aggros and idles. B7.1 replaced the prototype's
+-- same-room gate: the prototype's 10x8-tile rooms made "same room" ~=
+-- "within aggro range", but the generated floor's rooms are 2-4 tiles
+-- (32-64px), where the room gate dominated and de-aggro'd every enemy the
+-- instant the player crossed a doorway (played as "enemies don't react / only
+-- see me from one side"). LOS keeps the original intent — no chasing through
+-- walls — while letting enemies pursue through doors and corridors until the
+-- player leaves aggro range or rounds a corner. chaser seeks, shooter keeps
+-- its band and fires #6's 165px/s projectile, tank runs hold -> telegraph ->
+-- charge -> recover (hold trimmed 2.0s -> 1.2s; charge stops on wall impact).
 --
 -- B7 is motion-only like B6: the shooter's projectile goes into
 -- world.projectiles (walls + life expiry kill it; lib/projectiles.lua owns
@@ -32,11 +39,12 @@ local DESIGNS = {
   tank    = { hp = 6, speed = 35, aggro = 120, r = 9 },
 }
 
--- Tank charge cycle (prototype numbers): hold keeps 50-95px range for 2.0s,
--- then a 0.55s pulsing telegraph, a 340px/s lunge for 0.4s at the direction
--- locked at windup end, then 0.9s recovery. r=9 is the body radius that
--- blocks 1-tile corridors.
-local HOLD_T, WINDUP_T = 2.0, 0.55
+-- Tank charge cycle: hold keeps 50-95px range for 1.2s (prototype was 2.0s —
+-- in the generated floor's 32-64px rooms that read as "never attacks", since
+-- the player is always beside the tank), then a 0.55s pulsing telegraph, a
+-- 340px/s lunge for 0.4s at the direction locked at windup end, then 0.9s
+-- recovery. r=9 is the body radius that blocks 1-tile corridors.
+local HOLD_T, WINDUP_T = 1.2, 0.55
 local CHARGE_SPEED, CHARGE_T, RECOVER_T = 340, 0.4, 0.9
 
 -- Shooter's projectile, #6 verbatim: 165 px/s, r=2.5, life 3s, motion-only
@@ -54,12 +62,37 @@ local function tileOf(world, px, py)
   return math.floor(px / world.TILE) + 1, math.floor(py / world.TILE) + 1
 end
 
--- The room a pixel point is inside (nil in corridors/walls). The awareness
--- gate compares this against e.room recorded at spawn — same room object or
--- de-aggro (also covers the player standing in a corridor).
+-- The room a pixel point is inside (nil in corridors/walls). e.room is
+-- recorded at spawn and kept for future per-room logic; the awareness gate no
+-- longer uses it — see hasLOS / updateAwareness.
 local function roomOf(world, px, py)
   local tx, ty = tileOf(world, px, py)
   return world.map.roomAt(tx, ty)
+end
+
+-- Line-of-sight: a straight march from (x0,y0) to (x1,y1) that fails on the
+-- first WALL the segment crosses. The march samples a ~4px-wide beam — the
+-- centerline plus both perpendicular offsets — so a graze along a wall corner
+-- doesn't count as a wall (LOS here means "a px-wide gap exists", not a razor
+-- ray). Rooms are convex floor rects by construction, so within a room LOS is
+-- always true; it only cuts when a wall intervenes (doorway-adjacent pursuit
+-- works: the door and corridor are open floor-to-floor).
+local function hasLOS(world, x0, y0, x1, y1)
+  local dx, dy = x1 - x0, y1 - y0
+  local dist = (dx * dx + dy * dy) ^ 0.5
+  if dist < 0.5 then return true end
+  local ux, uy = dx / dist, dy / dist
+  local px, py = x0, y0
+  local step = 4
+  for _ = 1, math.floor(dist / step) do
+    px, py = px + ux * step, py + uy * step
+    if not (world.map.isWalkablePx(px, py)
+        or world.map.isWalkablePx(px + uy * 3, py - ux * 3)
+        or world.map.isWalkablePx(px - uy * 3, py + ux * 3)) then
+      return false
+    end
+  end
+  return true
 end
 
 local function hitsWall(world, x, y)
@@ -85,15 +118,15 @@ end
 
 -- Seeded per-room spawn: round-robin SPAWN_SLOTS across the floor's non-spawn
 -- rooms, jitter around each room's center tile with retry, room membership
--- recorded at spawn. The retry keeps the spawn INSIDE the assigned room
--- (per-room spawn + the same-room awareness gate): room tiles are all
--- FLOOR by map-gen construction, so in-room implies walkable; the explicit
--- walkable check stays for parity with #6's text. The prototype's huge
--- static rooms made ±2 jitter stay in-room automatically; the generated
--- floor's 2-4 tile rooms need the same guarantee spelled out (a corridor
--- spawn would never aggro, and a tank would brick the corridor). Every draw
--- flows through world.seeded — identical seed => identical spawns (verify:
--- 2 seeds differ; R replays the same layout after map regenerate).
+-- recorded at spawn. The retry keeps the spawn INSIDE the assigned room:
+-- room tiles are all FLOOR by map-gen construction, so in-room implies
+-- walkable; the explicit walkable check stays for parity with #6's text. The
+-- prototype's huge static rooms made ±2 jitter stay in-room automatically;
+-- the generated floor's 2-4 tile rooms need the same guarantee spelled out
+-- (a corridor spawn would dodge awareness entirely, and a tank wedged in a
+-- 1-tile corridor would brick the path). Every draw flows through
+-- world.seeded — identical seed => identical spawns (verify: 2 seeds differ;
+-- R replays the same layout after map regenerate).
 local function spawnEnemies(world)
   local list = {}
   local rooms = {}
@@ -125,12 +158,17 @@ end
 
 -- --- awareness -------------------------------------------------------------
 
+-- Awareness = within aggro range AND line-of-sight (hasLOS above). Replaces
+-- the prototype's same-room membership gate (see header note): on the
+-- generated floor the room gate de-aggro'd enemies the moment the player's
+-- center crossed a doorway — even at 8px — which played as "chasers don't
+-- chase, shooters notice me from one side". De-aggro is still immediate and
+-- re-evaluated every frame.
 local function updateAwareness(world, e)
   local dx, dy = world.player.x - e.x, world.player.y - e.y
   local dist = (dx * dx + dy * dy) ^ 0.5
-  local pRoom = roomOf(world, world.player.x, world.player.y)
-  local sameRoom = pRoom ~= nil and e.room ~= nil and pRoom == e.room
-  e.aware = alwaysAggro or (sameRoom and dist < e.aggro)
+  e.aware = alwaysAggro
+    or (dist < e.aggro and hasLOS(world, e.x, e.y, world.player.x, world.player.y))
   return dx, dy, dist
 end
 
@@ -243,14 +281,35 @@ local function updateEnemy(world, e, dt)
     e.vy = e.vy + (fy / fLen) * 30
   end
 
-  -- move with wall-slide: axis-separated against the tile grid (blocked axis
-  -- stops, the free axis keeps going — same shape as lib/player.lua)
-  local nx, ny = e.x + e.vx * dt, e.y + e.vy * dt
-  if not (hitsWall(world, nx + e.r, e.y) or hitsWall(world, nx - e.r, e.y)) then
-    e.x = nx
-  end
-  if not (hitsWall(world, e.x, ny + e.r) or hitsWall(world, e.x, ny - e.r)) then
-    e.y = ny
+  -- move: the tank's charge is the exception to wall-slide — a solid lunge
+  -- that moves ONLY along its locked direction and stops dead on wall impact
+  -- (into recover). Sub-stepped so a slow frame can't tunnel a 1-tile wall.
+  -- This kills the prototype's charge-into-corner behavior where wall-slide
+  -- kept the lunge alive in the perpendicular axis, skating sideways along
+  -- the wall for the rest of its 0.4s (played as a tank "direction bug" in
+  -- small rooms). Every other enemy uses generic axis-separated wall-slide
+  -- (same shape as lib/player.lua).
+  if e.arch == "tank" and e.st == "charge" then
+    local remaining = CHARGE_SPEED * dt
+    while remaining > 0 do
+      local s = math.min(remaining, 8)
+      local nx, ny = e.x + e.cdirx * s, e.y + e.cdiry * s
+      if hitsWall(world, nx + e.r, ny) or hitsWall(world, nx - e.r, ny)
+         or hitsWall(world, nx, ny + e.r) or hitsWall(world, nx, ny - e.r) then
+        e.st, e.stT, e.vx, e.vy = "recover", 0, 0, 0 -- impact: lunge stops dead
+        break
+      end
+      e.x, e.y = nx, ny
+      remaining = remaining - s
+    end
+  else
+    local nx, ny = e.x + e.vx * dt, e.y + e.vy * dt
+    if not (hitsWall(world, nx + e.r, e.y) or hitsWall(world, nx - e.r, e.y)) then
+      e.x = nx
+    end
+    if not (hitsWall(world, e.x, ny + e.r) or hitsWall(world, e.x, ny - e.r)) then
+      e.y = ny
+    end
   end
 end
 
@@ -287,7 +346,11 @@ function enemy.draw(world)
       local rot = 0
       if e.arch == "chaser" then
         -- triangle sprite points up by default; rotate to aim at the player
-        rot = math.atan2(player.y - e.y, player.x - e.x) + math.pi / 2
+        -- while aware; an idle chaser holds its last aim instead of tracking
+        -- you when it can't see you
+        rot = e.aware and (math.atan2(player.y - e.y, player.x - e.x) + math.pi / 2)
+          or (e.bodyRot or 0)
+        e.bodyRot = rot
       elseif e.arch == "shooter" then
         img = imgs.enemy_shooter
       else
