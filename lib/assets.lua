@@ -62,6 +62,16 @@ local function buildEntity(pal, coreFn, edgeFalloff)
   end)
 end
 
+-- sfx noise source: deterministic LOCAL LCG. Never love.math.random — the
+-- run RNG belongs to lib/seeded.lua and assets.init() runs AFTER the run is
+-- seeded, so drawing here would shift every later consumer's stream (this
+-- actually broke floor-gen determinism in B4 — see commit note).
+local noiseState = 12345
+local function sfxNoise()
+  noiseState = (noiseState * 1103515245 + 12345) % 2147483648
+  return noiseState / 1073741823.5 - 1 -- -1..1
+end
+
 -- --- gen: tiles -----------------------------------------------------------
 
 local function genFloor()
@@ -166,7 +176,7 @@ local function makeSound(dur, fStart, fEnd, vol, wave, noiseMix)
     local s = math.sin(2 * math.pi * f * t)
     if wave == "square" then s = s > 0 and 1 or -1 end
     if noiseMix > 0 then
-      s = (1 - noiseMix) * s + noiseMix * (love.math.random() * 2 - 1)
+      s = (1 - noiseMix) * s + noiseMix * sfxNoise()
     end
     local env = math.max(0, 1 - prog) * vol
     sd:setSample(i, math.max(-1, math.min(1, s * env)))
@@ -228,46 +238,11 @@ end
 function assets.update()
 end
 
--- Debug-only test strip: every primitive on screen, once per frame reuse.
--- Proves generation is a load-time event, not per-frame (docs/backlog.md B3).
-function assets.draw(world)
-  if not world.debug then return end
-
-  -- panel behind the strip so near-black floor/wall still read
-  love.graphics.setColor(0.09, 0.09, 0.15, 0.95)
-  love.graphics.rectangle("fill", 8, 196, 464, 140)
-
-  local function cell(label, image, x, y, scale)
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(image, x, y, 0, scale, scale)
-    love.graphics.setColor(0.75, 0.75, 0.75, 1)
-    love.graphics.print(label, x - 2, y + 16 * scale + 4)
-  end
-
-  -- row 1: tiles + entities (16x16, x2)
-  local x = 24
-  local y1 = 204
-  for _, item in ipairs({
-    { "floor", "floor" }, { "wall", "wall" }, { "player", "player" },
-    { "chaser", "enemy_chaser" }, { "shooter", "enemy_shooter" }, { "tank", "enemy_tank" },
-  }) do
-    cell(item[1], assets.images[item[2]], x, y1, 2)
-    x = x + 44
-  end
-
-  -- row 2: projectile, glow (additive pass), particle
-  cell("projectile", assets.images.projectile, 24, 252, 2)
-  love.graphics.setBlendMode("add")
-  love.graphics.setColor(1, 1, 1, 0.9)
-  love.graphics.draw(assets.images.glow, 76, 252, 0, 2, 2)
-  love.graphics.setBlendMode("alpha")
-  love.graphics.setColor(0.75, 0.75, 0.75, 1)
-  love.graphics.print("glow(add)", 74, 284)
-  cell("particle", assets.images.particle, 150, 252, 2)
-
-  -- sfx hint
-  love.graphics.setColor(0.95, 0.85, 0.40, 1)
-  love.graphics.print("sfx: 1 shoot  2 hit  3 death  4 pickup  5 hurt  6 pdeath", 24, 308)
+-- Debug-only test strip was B3 tooling: proved every primitive renders and
+-- sfx audition keys work. The map now owns the canvas (B4), so draw is a
+-- no-op; keys 1-6 stay as a debug sfx audition. Generation itself is a
+-- load-time event, never per-frame (buildCount guard above).
+function assets.draw()
 end
 
 -- Debug keys: play each sfx on demand (B3 verify: "SFX play on demand").

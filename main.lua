@@ -12,7 +12,6 @@ local config = require("lib.config")
 -- B1 shipped zero gameplay modules: config is a constants table, not a hook
 -- module. Later tickets append one line each, in build order
 -- (docs/backlog.md):
---   B4  require("lib.map")
 --   B5  require("lib.player"), require("lib.camera")
 --   B6  require("lib.weapons"), require("lib.projectiles")
 --   B7  require("lib.enemy")
@@ -24,6 +23,7 @@ local config = require("lib.config")
 local modules = {
   require("lib.seeded"), -- B2: orders first — every later module draws from world.seeded
   require("lib.assets"), -- B3: sprite + sfx primitives, built once in load
+  require("lib.map"),    -- B4: seeded floor gen + connectivity assert + tile batches
 }
 
 local world       -- shared state, built once in love.load
@@ -34,6 +34,13 @@ local function buildWorld()
   world = {
     seed = config.DEBUG_SEED, -- consumed by lib/seeded's load()
     debug = true,             -- gates dev helpers (B2 readout, later debug-R)
+    -- constants for modules (no cross-module requires; main is the single
+    -- consumer of lib/config.lua and hands values over via world)
+    TILE  = config.TILE,
+    WORLD_W = config.MAPW, -- world pixel size (40 tiles x 16)
+    WORLD_H = config.MAPH,
+    VIEW_W  = config.VIEW_W, -- base-res canvas
+    VIEW_H  = config.VIEW_H,
   }
 end
 
