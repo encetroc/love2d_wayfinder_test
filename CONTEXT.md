@@ -81,3 +81,13 @@ _Avoid_: ammo crate, clip
 **Damage upgrade**:
 The single per-run pickup (spawned once, mid-floor) that raises damage by +1 on both weapons.
 _Avoid_: power-up, buff
+
+## HUD & feel
+
+**Reticle**:
+The mouse-aim cursor indicator — a tight crosshair for pulse, a fan arc telegraphing the scatter spread and reach.
+_Avoid_: crosshair (generic), cursor
+
+**Room toast**:
+A brief fading `ROOM n` banner shown on each room entry; no persistent room readout.
+_Avoid_: room indicator, banner (when not entry-specific)
